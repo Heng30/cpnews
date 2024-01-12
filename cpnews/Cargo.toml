@@ -11,11 +11,14 @@ pollster = "0.2"
 egui = "0.22"
 egui-wgpu = { version = "0.22", features = [ "winit" ] }
 egui-winit = { version = "0.22", default-features = false, features = [ "android-native-activity" ] }
+anyhow = "1.0.79"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
+reqwest = { version = "0.11", features = ["json", "blocking"]}
 env_logger = "0.10"
 
 [target.'cfg(target_os = "android")'.dependencies]
+reqwest = { version = "0.11", features = ["rustls-tls", "native-tls-vendored",  "json", "blocking"]}
 android_logger = "0.13"
 
 [features]

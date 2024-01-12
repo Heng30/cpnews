@@ -1,39 +1,65 @@
+use anyhow::Result;
 use egui::Context;
+use std::cell::RefCell;
+use std::sync::Arc;
+use std::sync::mpsc::{self, Receiver, SyncSender};
 
-#[derive(Default)]
-pub struct App {}
+#[derive(Clone)]
+pub struct App {
+    pub text: String,
+    pub tx: Arc<SyncSender<String>>,
+    pub rx: Arc<RefCell<Receiver<String>>>,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        let (tx, rx) = mpsc::sync_channel(10);
+
+        Self {
+            text: "hello world".to_string(),
+            tx: Arc::new(tx),
+            rx: Arc::new(RefCell::new(rx)),
+        }
+    }
+}
 
 impl App {
     pub fn ui(&mut self, ctx: &Context) {
-        egui::SidePanel::right("desktop egui demo")
-            .resizable(false)
-            .default_width(150.0)
-            .show(ctx, |ui| {
-                egui::trace!(ui);
-                ui.vertical_centered(|ui| {
-                    ui.heading("✒ egui demos");
-                });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if ui.button("Click each year").clicked() {
+                self.fetch_data();
+            }
 
-                ui.separator();
+            ui.separator();
 
-                use egui::special_emojis::{GITHUB, TWITTER};
-                ui.hyperlink_to(
-                    format!("{} egui on GitHub", GITHUB),
-                    "https://github.com/emilk/egui",
-                );
-                ui.hyperlink_to(
-                    format!("{} @ernerfeldt", TWITTER),
-                    "https://twitter.com/ernerfeldt",
-                );
+            if let Ok(text) = self.rx.borrow_mut().try_recv() {
+                self.text = text;
+                ui.label(&self.text);
+            }
 
-                ui.separator();
-            });
-
-        self.show_windows(ctx);
+            ui.label(&self.text);
+        });
     }
 
-    // Show the open windows.
-    fn show_windows(&mut self, _ctx: &Context) {}
+    fn fetch_data(&mut self) {
+        let tx = self.tx.clone();
+
+        std::thread::spawn(
+            move || match reqwest::blocking::get("https://httpbin.org/ip") {
+                Err(e) => {
+                    let _ = tx.try_send(format!("{e:?}"));
+                }
+                Ok(resp) => match resp.text() {
+                    Err(e) => {
+                        let _ = tx.try_send(format!("{e:?}"));
+                    }
+                    Ok(text) => {
+                        let _ = tx.try_send(text);
+                    }
+                },
+            },
+        );
+    }
 }
 
 #[allow(unused)]
