@@ -42,7 +42,8 @@ pub fn tr(is_cn: bool, text: &str) -> String {
     items.insert("解码成功", "Decode success");
     items.insert("文件名为空", "File name is empty");
     items.insert("非法文件", "Invalid file");
-    items.insert("Odaily 新闻", "Odaily News");
+    items.insert("加密新闻", "Crypto News");
+    items.insert("原文链接", "Source Link");
     items.insert("刷新", "Refresh");
     items.insert("刷新...", "Flush...");
     items.insert("在线", "Online");

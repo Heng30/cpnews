@@ -9,14 +9,16 @@ use winit::event_loop::{EventLoop, EventLoopBuilder, EventLoopWindowTarget};
 #[cfg(target_os = "android")]
 use crate::winit::platform::android::activity::AndroidApp;
 
+mod about;
 mod app;
+mod news;
 mod theme;
 mod tr;
 
 use app::App;
 
-const INITIAL_WIDTH: u32 = 1920;
-const INITIAL_HEIGHT: u32 = 1080;
+const INITIAL_WIDTH: u32 = 400;
+const INITIAL_HEIGHT: u32 = 600;
 
 // A custom event type for the winit app.
 enum Event {

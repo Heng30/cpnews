@@ -1,10 +1,17 @@
-use egui::{Color32, ColorImage, Context, FontData, FontDefinitions, FontFamily, Vec2, Visuals, Style};
+use egui::{
+    Color32, ColorImage, Context, FontData, FontDefinitions, FontFamily, Style, Vec2, Visuals,
+};
 use image;
 
-pub const SPACING: f32 = 8.;
+pub const SPACING: f32 = 4.;
+pub const PADDING: f32 = 4.;
 pub const ICON_SIZE: Vec2 = Vec2::new(24.0, 24.0);
 
+pub const NEWS_TITLE_FONT_SIZE: f32 = 16.0;
+pub const NEWS_TITLE_COLOR: Color32 = Color32::from_rgb(0, 0, 200);
+
 pub const BRAND_COLOR: Color32 = Color32::DARK_BLUE;
+pub const LIGHT_COLOR: Color32 = Color32::GRAY;
 
 pub const REFRESH_ICON: &[u8] = include_bytes!("./res/image/refresh.png");
 pub const LANG_ICON: &[u8] = include_bytes!("./res/image/lang.png");
@@ -16,6 +23,7 @@ pub fn init(ctx: &Context) {
 
     let mut style: Style = (*ctx.style()).clone();
     style.spacing.scroll_bar_width = 2.0;
+    style.visuals.hyperlink_color = LIGHT_COLOR;
     ctx.set_style(style);
 }
 

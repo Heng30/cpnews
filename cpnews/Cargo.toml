@@ -8,9 +8,9 @@ resolver = "2"
 log = "0.4"
 pollster = "0.2"
 
-egui = "0.22"
+egui = {version = "0.22",  features = [] }
 egui-wgpu = { version = "0.22", features = [ "winit" ] }
-egui-winit = { version = "0.22", default-features = false, features = [ "android-native-activity" ] }
+egui-winit = { version = "0.22", default-features = false, features = [ "android-native-activity", "links"] }
 anyhow = "1.0.79"
 image = "0.24.7"
 
