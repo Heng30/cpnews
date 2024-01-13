@@ -10,6 +10,9 @@ use winit::event_loop::{EventLoop, EventLoopBuilder, EventLoopWindowTarget};
 use crate::winit::platform::android::activity::AndroidApp;
 
 mod app;
+mod theme;
+mod tr;
+
 use app::App;
 
 const INITIAL_WIDTH: u32 = 1920;
@@ -60,6 +63,8 @@ fn create_window<T>(
 
 fn _main(event_loop: EventLoop<Event>) {
     let ctx = egui::Context::default();
+    theme::init(&ctx);
+
     let repaint_signal = RepaintSignal(std::sync::Arc::new(std::sync::Mutex::new(
         event_loop.create_proxy(),
     )));

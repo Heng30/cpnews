@@ -8,10 +8,10 @@ all: build-android-lib build-android-app
 build-android-lib:
 	$(build-evn) cargo ndk -t arm64-v8a -o cpnews/app/src/main/jniLibs/  build --release
 
-build-android-app:
+build-android-app: build-android-lib
 	cd ./cpnews && ./gradlew build
 
-install:
+install: build-android-app
 	cd ./cpnews && ./gradlew installDebug
 
 run:
