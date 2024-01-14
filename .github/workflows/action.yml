@@ -14,7 +14,7 @@ jobs:
       - run: ls ${{ github.workspace }}
 
       - run: sudo apt update
-      - run: sudo apt install curl
+      - run: sudo apt install curl cargo
       - run: curl https://sh.rustup.rs -sSfy | sh
 
       - run: echo "start install Rust..."
@@ -22,10 +22,10 @@ jobs:
         uses: actions-rs/toolchain@v1
       - run: echo "end install Rust..."
 
-      - run: echo "start install Cargo..."
-      - name: Install Cargo
-        uses: actions-rs/cargo@v1
-      - run: echo "end install Cargo..."
+      # - run: echo "start install Cargo..."
+      # - name: Install Cargo
+      #   uses: actions-rs/cargo@v1
+      # - run: echo "end install Cargo..."
 
       - run: rustup target add aarch64-linux-android
       - run: cargo install cargo-ndk
