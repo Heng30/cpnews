@@ -1,3 +1,11 @@
+#![windows_subsystem = "windows"]
+
+#[macro_use]
+extern crate serde_derive;
+
+// #[macro_use]
+// extern crate lazy_static;
+
 use egui_wgpu::wgpu;
 use egui_wgpu::winit::Painter;
 use egui_winit::winit;
@@ -14,6 +22,7 @@ mod app;
 mod news;
 mod theme;
 mod tr;
+mod util;
 
 use app::App;
 
@@ -98,6 +107,7 @@ fn _main(event_loop: EventLoop<Event>) {
     );
     let mut window: Option<winit::window::Window> = None;
     let mut egui_windows = App::default();
+    egui_windows.init(&ctx);
 
     event_loop.run(move |event, event_loop, control_flow| match event {
         Resumed => match window {

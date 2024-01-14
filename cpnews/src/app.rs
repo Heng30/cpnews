@@ -1,13 +1,15 @@
-use super::about;
-use super::theme;
-use super::tr::tr;
-use anyhow::Result;
-use egui::Context;
-use egui::{Align, FontId, ImageButton, Layout, Pos2, RichText, ScrollArea, TextStyle, Ui, Window};
+use super::{about, news, news::NewsItem, theme, tr::tr, util};
+use egui::{
+    containers::scroll_area::ScrollBarVisibility, containers::Frame, Align, Button, Color32,
+    Context, FontId, ImageButton, Layout, Pos2, RichText, ScrollArea, Stroke, TextStyle,
+    TextureHandle, Ui, Window,
+};
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::sync::Arc;
 
+#[allow(unused)]
 #[derive(Clone, Debug)]
 enum MsgType {
     Info,
@@ -24,50 +26,85 @@ impl Default for MsgType {
 
 #[derive(Clone, Debug, Default)]
 struct MsgSpec {
-    show: bool,
     msg: String,
     msg_type: MsgType,
+    timestamp: i64,
 }
 
-#[derive(Clone, Debug, Default)]
-struct NewsItem {
-    pub title: String,
-    pub summary: String,
-    pub date: String,
-    pub link: String,
+#[derive(Clone, Debug)]
+enum ChannelItem {
+    ErrMsg(String),
+    NewsItems(Vec<NewsItem>),
 }
 
 #[derive(Clone)]
 pub struct App {
-    pub about: String,
     pub is_cn: bool,
-    pub msg_spec: MsgSpec,
-    pub tx: Arc<SyncSender<NewsItem>>,
-    pub rx: Arc<RefCell<Receiver<NewsItem>>>,
+    pub is_fetching: bool,
+    pub is_scroll_to_top: bool,
     pub news_items: Vec<NewsItem>,
+
+    pub about: String,
+    msg_spec: MsgSpec,
+
+    tx: Arc<SyncSender<ChannelItem>>,
+    rx: Rc<RefCell<Receiver<ChannelItem>>>,
+
+    pub brand_icon: Option<TextureHandle>,
+    pub refresh_icon: Option<TextureHandle>,
+    pub language_icon: Option<TextureHandle>,
 }
 
 impl Default for App {
     fn default() -> Self {
-        let (tx, rx) = mpsc::sync_channel(1024);
+        let (tx, rx) = mpsc::sync_channel(10);
 
         Self {
             is_cn: true,
-            msg_spec: Default::default(),
-            about: about::about(),
-            tx: Arc::new(tx),
-            rx: Arc::new(RefCell::new(rx)),
+            is_fetching: false,
+            is_scroll_to_top: false,
             news_items: vec![],
+
+            about: about::about(),
+            msg_spec: Default::default(),
+
+            tx: Arc::new(tx),
+            rx: Rc::new(RefCell::new(rx)),
+
+            brand_icon: None,
+            refresh_icon: None,
+            language_icon: None,
         }
     }
 }
 
 impl App {
+    pub fn init(&mut self, ctx: &Context) {
+        self.fetch_data();
+
+        self.brand_icon = Some(ctx.load_texture(
+            "brand-icon",
+            theme::load_image_from_memory(theme::BRAND_ICON),
+            Default::default(),
+        ));
+
+        self.refresh_icon = Some(ctx.load_texture(
+            "refresh-icon",
+            theme::load_image_from_memory(theme::REFRESH_ICON),
+            Default::default(),
+        ));
+
+        self.language_icon = Some(ctx.load_texture(
+            "language-icon",
+            theme::load_image_from_memory(theme::LANGUAGE_ICON),
+            Default::default(),
+        ));
+    }
+
     pub fn ui(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             self.header(ui);
             self.news_list(ui);
-
             self.update_data();
         });
 
@@ -76,35 +113,51 @@ impl App {
 
     fn header(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
+            ui.image(&self.brand_icon.clone().unwrap(), theme::ICON_SIZE);
             ui.heading(RichText::new(tr(self.is_cn, "加密新闻")).color(theme::BRAND_COLOR));
-            ui.add_space(theme::SPACING);
 
-            ui.with_layout(Layout::right_to_left(Align::RIGHT), |ui| {
-                let refresh_icon = ui.ctx().load_texture(
-                    "refresh-icon",
-                    theme::load_image_from_memory(theme::REFRESH_ICON),
-                    Default::default(),
-                );
+            // double-clicked-area to scroll to top
+            ui.with_layout(
+                Layout::centered_and_justified(egui::Direction::LeftToRight),
+                |ui| {
+                    Frame::none()
+                        // .fill(theme::WARN_COLOR)
+                        // .stroke(Stroke {
+                        //     width: 1.0,
+                        //     color: Color32::BLACK,
+                        // })
+                        .show(ui, |ui| {
+                            let btn = Button::new("").frame(false);
+                            if ui.add(btn).double_clicked() {
+                                self.is_scroll_to_top = true;
+                            }
+                        });
+                },
+            );
 
-                let lang_icon = ui.ctx().load_texture(
-                    "lang-icon",
-                    theme::load_image_from_memory(theme::LANG_ICON),
-                    Default::default(),
-                );
-
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if ui
-                    .add(ImageButton::new(lang_icon.id(), theme::ICON_SIZE).frame(false))
+                    .add(ImageButton::new(
+                            self.language_icon.clone().unwrap().id(),
+                            theme::ICON_SIZE).frame(false))
                     .clicked()
                 {
                     self.is_cn = !self.is_cn;
                 }
 
                 if ui
-                    .add(ImageButton::new(refresh_icon.id(), theme::ICON_SIZE).frame(false))
+                    .add(ImageButton::new(
+                            self.refresh_icon.clone().unwrap().id(),
+                            theme::ICON_SIZE).frame(false))
                     .clicked()
                 {
-                    // self.show_message("hello world".to_string(), MsgType::Success);
                     self.fetch_data();
+                }
+
+                if self.is_fetching {
+                    ui.label(
+                        RichText::new(&tr(self.is_cn, "正在刷新")).color(theme::NEWS_TITLE_COLOR),
+                    );
                 }
             });
         });
@@ -117,13 +170,20 @@ impl App {
         let row_height = ui.text_style_height(&text_style);
         let num_rows = self.news_items.len();
 
-        ScrollArea::vertical()
+        let mut sarea = ScrollArea::vertical()
             .auto_shrink([false, false])
-            .show_rows(ui, row_height, num_rows, |ui, row_range| {
-                for row in row_range {
-                    self.show_news_item(ui, &self.news_items[row]);
-                }
-            });
+            .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible);
+
+        if self.is_scroll_to_top {
+            sarea = sarea.vertical_scroll_offset(0.0);
+            self.is_scroll_to_top = false;
+        }
+
+        sarea.show_rows(ui, row_height, num_rows, |ui, row_range| {
+            for row in row_range {
+                self.show_news_item(ui, &self.news_items[row]);
+            }
+        });
     }
 
     fn show_news_item(&self, ui: &mut Ui, item: &NewsItem) {
@@ -157,42 +217,58 @@ impl App {
         });
     }
 
-    // TODO
     fn update_data(&mut self) {
-        if let Ok(item) = self.rx.borrow_mut().try_recv() {
-            self.news_items.push(item);
-        }
+        let rx = self.rx.clone();
+
+        if let Ok(item) = rx.borrow_mut().try_recv() {
+            match item {
+                ChannelItem::ErrMsg(msg) => self.show_message(msg, MsgType::Warn),
+                ChannelItem::NewsItems(items) => {
+                    if !items.is_empty() {
+                        self.news_items = items;
+                    }
+                }
+            }
+
+            self.is_fetching = false;
+        };
     }
 
     fn fetch_data(&mut self) {
+        if self.is_fetching {
+            return;
+        }
+
+        self.is_fetching = true;
         let tx = self.tx.clone();
 
-        std::thread::spawn(move || {
-            let _ = tx.try_send(NewsItem {
-                title: "在一幅刻".to_string(),
-                summary: "在一幅刻制于南宋年间的《平江图》展板前，习近平仔细察看。沿着石板路，他走进古街巷。历经岁月沧桑，如今的姑苏古城与《平江图》里的古苏州整体布局基本一致。".to_string(),
-                date: "2023-12-9 12:09:08".to_string(),
-                link: "http://google.com".to_string(),
-            });
+        std::thread::spawn(move || match news::fetch() {
+            Err(e) => {
+                let _ = tx.try_send(ChannelItem::ErrMsg(e.to_string()));
+            }
+            Ok(v) => {
+                let _ = tx.try_send(ChannelItem::NewsItems(v));
+            }
         });
-
-        // move || match reqwest::blocking::get("https://httpbin.org/ip") {
-        //     Err(e) => {
-        //         let _ = tx.try_send(format!("{e:?}"));
-        //     }
-        //     Ok(resp) => match resp.text() {
-        //         Err(e) => {
-        //             let _ = tx.try_send(format!("{e:?}"));
-        //         }
-        //         Ok(text) => {
-        //             let _ = tx.try_send(text);
-        //         }
-        //     },
-        // },
     }
 
     fn popup_message(&mut self, ctx: &Context) {
-        let mut is_show = self.msg_spec.show;
+        let mut is_show = util::timestamp() - self.msg_spec.timestamp < 5_i64;
+
+        let frame = Frame::none()
+            .fill(match self.msg_spec.msg_type {
+                MsgType::Success => theme::SUCCESS_COLOR,
+                MsgType::Warn => theme::WARN_COLOR,
+                MsgType::Danger => theme::DANGER_COLOR,
+                _ => theme::INFO_COLOR,
+            })
+            .rounding(0.0)
+            .inner_margin(theme::PADDING)
+            .stroke(Stroke {
+                width: 1.0,
+                color: Color32::BLACK,
+            });
+
         Window::new("popup-message")
             .title_bar(false)
             .open(&mut is_show)
@@ -201,15 +277,16 @@ impl App {
             .constrain(true)
             .interactable(false)
             .fixed_pos(Pos2::new(10.0, 60.0))
+            .frame(frame)
             .show(ctx, |ui| {
                 ui.label(&self.msg_spec.msg);
             });
     }
 
     fn show_message(&mut self, msg: String, msg_type: MsgType) {
-        self.msg_spec.show = true;
         self.msg_spec.msg = msg;
         self.msg_spec.msg_type = msg_type;
+        self.msg_spec.timestamp = util::timestamp();
     }
 }
 

@@ -1,24 +1,33 @@
 use egui::{
     Color32, ColorImage, Context, FontData, FontDefinitions, FontFamily, Style, Vec2, Visuals,
 };
-use image;
+
+#[allow(unused)]
+pub const PADDING: f32 = 4.;
 
 pub const SPACING: f32 = 4.;
-pub const PADDING: f32 = 4.;
 pub const ICON_SIZE: Vec2 = Vec2::new(24.0, 24.0);
 
 pub const NEWS_TITLE_FONT_SIZE: f32 = 16.0;
 pub const NEWS_TITLE_COLOR: Color32 = Color32::from_rgb(0, 0, 200);
 
-pub const BRAND_COLOR: Color32 = Color32::DARK_BLUE;
+pub const BRAND_COLOR: Color32 = Color32::from_rgb(0, 0, 139);
 pub const LIGHT_COLOR: Color32 = Color32::GRAY;
+pub const INFO_COLOR: Color32 = Color32::from_rgb(144, 144, 153);
+pub const SUCCESS_COLOR: Color32 = Color32::from_rgb(102, 194, 58);
+pub const WARN_COLOR: Color32 = Color32::from_rgb(230, 162, 60);
+pub const DANGER_COLOR: Color32 = Color32::from_rgb(245, 108, 108);
 
 pub const REFRESH_ICON: &[u8] = include_bytes!("./res/image/refresh.png");
-pub const LANG_ICON: &[u8] = include_bytes!("./res/image/lang.png");
+pub const LANGUAGE_ICON: &[u8] = include_bytes!("./res/image/lang.png");
+pub const BRAND_ICON: &[u8] = include_bytes!("./res/image/brand.png");
 
 pub fn init(ctx: &Context) {
     set_font(ctx);
+    set_style(ctx);
+}
 
+fn set_style(ctx: &Context) {
     ctx.set_visuals(Visuals::light());
 
     let mut style: Style = (*ctx.style()).clone();
@@ -27,7 +36,7 @@ pub fn init(ctx: &Context) {
     ctx.set_style(style);
 }
 
-pub fn set_font(ctx: &Context) {
+fn set_font(ctx: &Context) {
     let mut fonts = FontDefinitions::default();
 
     fonts.font_data.insert(

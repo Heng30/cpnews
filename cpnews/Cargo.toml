@@ -7,12 +7,17 @@ resolver = "2"
 [dependencies]
 log = "0.4"
 pollster = "0.2"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+# lazy_static = "1.4"
+chrono = "0.4"
+anyhow = "1.0"
+image = "0.24"
 
-egui = {version = "0.22",  features = [] }
+egui = {version = "0.22",  features = ["color-hex"] }
 egui-wgpu = { version = "0.22", features = [ "winit" ] }
 egui-winit = { version = "0.22", default-features = false, features = [ "android-native-activity", "links"] }
-anyhow = "1.0.79"
-image = "0.24.7"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 reqwest = { version = "0.11", features = ["json", "blocking"]}
