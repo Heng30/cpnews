@@ -1,23 +1,21 @@
-![screenshot](./screenshot/bitbox-en.png)
+![screenshot](./screenshot/cpnews-en.png)
 
 [中文文档](./README.zh-CN.md)
 
 #### Introduction
-It is a remote bitcoin wallet. Using blockstream API to broadcast transaction and fetch on chain information. I test it only in bitcoin **test network**, so you take you only risk to use this bitcoin light wallet on the bitcoin man network.
+It is a simple App for displaying crypto news.
 
 #### Features
-- [x] new wallet account
-- [x] recover wallet account
+- [x] use [odaily.news](https://www.odaily.news/) provided `API` to fetch news
 
 #### How to build?
+- Install Android `sdk`, `ndk`, `jdk17`, and set environment variables
 - Install `Rust` and `Cargo`
 - Run `make`
-- Refer to [Makefile](./Makefile) for more information
+- Refer to [Makefile](./Makefile) and [build.help](./build.help) for more information
 
 #### Reference
-- [Slint Language Documentation](https://slint-ui.com/releases/1.0.0/docs/slint/)
-- [github/slint-ui](https://github.com/slint-ui/slint)
-- [Viewer for Slint](https://github.com/slint-ui/slint/tree/master/tools/viewer)
-- [LSP (Language Server Protocol) Server for Slint](https://github.com/slint-ui/slint/tree/master/tools/lsp)
+- [egui](https://github.com/emilk/egui)
+- [rust-android-examples](https://github.com/rust-mobile/rust-android-examples)
 - [cross-platform-rust-http-request](https://logankeenan.com/posts/cross-platform-rust-http-request/)
 

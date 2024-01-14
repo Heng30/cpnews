@@ -27,8 +27,8 @@ mod version;
 
 use app::App;
 
-const INITIAL_WIDTH: u32 = 400;
-const INITIAL_HEIGHT: u32 = 600;
+const INITIAL_WIDTH: u32 = 1920;
+const INITIAL_HEIGHT: u32 = 1080;
 
 // A custom event type for the winit app.
 enum Event {
