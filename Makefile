@@ -14,6 +14,9 @@ build-android-app: build-android-lib
 install: build-android-app
 	cd ./cpnews && ./gradlew installDebug
 
+# install-release: build-android-app
+# 	adb install ./cpnews/app/build/outputs/apk/release/app-release-unsigned.apk
+
 run:
 	$(build-evn) $(run-evn) cargo run --bin cpnews --features=desktop
 
