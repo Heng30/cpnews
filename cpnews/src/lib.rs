@@ -23,6 +23,7 @@ mod news;
 mod theme;
 mod tr;
 mod util;
+mod version;
 
 use app::App;
 

@@ -1,4 +1,11 @@
-use super::{about, news, news::NewsItem, theme, tr::tr, util};
+use super::{
+    about::{self, About},
+    news,
+    news::NewsItem,
+    theme,
+    tr::tr,
+    util,
+};
 use egui::{
     containers::scroll_area::ScrollBarVisibility, containers::Frame, Align, Button, Color32,
     Context, FontId, ImageButton, Layout, Pos2, RichText, ScrollArea, Stroke, TextStyle,
@@ -24,6 +31,18 @@ impl Default for MsgType {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum CurrentPanel {
+    News,
+    About,
+}
+
+impl Default for CurrentPanel {
+    fn default() -> Self {
+        Self::News
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 struct MsgSpec {
     msg: String,
@@ -44,15 +63,18 @@ pub struct App {
     pub is_scroll_to_top: bool,
     pub news_items: Vec<NewsItem>,
 
-    pub about: String,
+    pub currency_panel: CurrentPanel,
+    pub about_panel: About,
     msg_spec: MsgSpec,
 
     tx: Arc<SyncSender<ChannelItem>>,
     rx: Rc<RefCell<Receiver<ChannelItem>>>,
 
-    pub brand_icon: Option<TextureHandle>,
-    pub refresh_icon: Option<TextureHandle>,
-    pub language_icon: Option<TextureHandle>,
+    brand_icon: Option<TextureHandle>,
+    refresh_icon: Option<TextureHandle>,
+    language_icon: Option<TextureHandle>,
+    about_icon: Option<TextureHandle>,
+    pub back_icon: Option<TextureHandle>,
 }
 
 impl Default for App {
@@ -65,8 +87,10 @@ impl Default for App {
             is_scroll_to_top: false,
             news_items: vec![],
 
-            about: about::about(),
+            currency_panel: Default::default(),
             msg_spec: Default::default(),
+
+            about_panel: Default::default(),
 
             tx: Arc::new(tx),
             rx: Rc::new(RefCell::new(rx)),
@@ -74,6 +98,8 @@ impl Default for App {
             brand_icon: None,
             refresh_icon: None,
             language_icon: None,
+            back_icon: None,
+            about_icon: None,
         }
     }
 }
@@ -99,12 +125,30 @@ impl App {
             theme::load_image_from_memory(theme::LANGUAGE_ICON),
             Default::default(),
         ));
+
+        self.about_icon = Some(ctx.load_texture(
+            "about-icon",
+            theme::load_image_from_memory(theme::ABOUT_ICON),
+            Default::default(),
+        ));
+
+        self.back_icon = Some(ctx.load_texture(
+            "back-icon",
+            theme::load_image_from_memory(theme::BACK_ICON),
+            Default::default(),
+        ));
     }
 
     pub fn ui(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.header(ui);
-            self.news_list(ui);
+            match self.currency_panel {
+                CurrentPanel::News => {
+                    self.header(ui);
+                    self.news_list(ui);
+                }
+                CurrentPanel::About => about::ui(self, ui),
+            }
+
             self.update_data();
         });
 
@@ -113,8 +157,10 @@ impl App {
 
     fn header(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.image(&self.brand_icon.clone().unwrap(), theme::ICON_SIZE);
-            ui.heading(RichText::new(tr(self.is_cn, "加密新闻")).color(theme::BRAND_COLOR));
+            ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                ui.image(&self.brand_icon.clone().unwrap(), theme::ICON_SIZE);
+                ui.heading(RichText::new(tr(self.is_cn, "加密新闻")).color(theme::BRAND_COLOR));
+            });
 
             // double-clicked-area to scroll to top
             ui.with_layout(
@@ -136,19 +182,39 @@ impl App {
             );
 
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.add_space(theme::PADDING * 2.);
+
                 if ui
-                    .add(ImageButton::new(
+                    .add(
+                        ImageButton::new(
+                            self.about_icon.clone().unwrap().id(),
+                            theme::SMALL_ICON_SIZE,
+                        )
+                        .frame(false),
+                    )
+                    .clicked()
+                {
+                    self.currency_panel = CurrentPanel::About;
+                }
+
+                if ui
+                    .add(
+                        ImageButton::new(
                             self.language_icon.clone().unwrap().id(),
-                            theme::ICON_SIZE).frame(false))
+                            theme::ICON_SIZE,
+                        )
+                        .frame(false),
+                    )
                     .clicked()
                 {
                     self.is_cn = !self.is_cn;
                 }
 
                 if ui
-                    .add(ImageButton::new(
-                            self.refresh_icon.clone().unwrap().id(),
-                            theme::ICON_SIZE).frame(false))
+                    .add(
+                        ImageButton::new(self.refresh_icon.clone().unwrap().id(), theme::ICON_SIZE)
+                            .frame(false),
+                    )
                     .clicked()
                 {
                     self.fetch_data();
@@ -206,10 +272,7 @@ impl App {
                 if !item.link.is_empty() {
                     ui.add_space(theme::SPACING);
 
-                    ui.hyperlink_to(
-                        RichText::new(tr(self.is_cn, "原文链接")).color(theme::LIGHT_COLOR),
-                        &item.link,
-                    );
+                    ui.hyperlink_to(tr(self.is_cn, "原文链接"), &item.link);
                 }
             });
 

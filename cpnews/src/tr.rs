@@ -46,6 +46,7 @@ pub fn tr(is_cn: bool, text: &str) -> String {
     items.insert("原文链接", "Source Link");
     items.insert("刷新", "Refresh");
     items.insert("正在刷新", "Refreshing");
+    items.insert("关于", "About");
     items.insert("在线", "Online");
     items.insert("正忙", "Busy");
     items.insert("空闲", "Idle");
