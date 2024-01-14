@@ -13,6 +13,22 @@ jobs:
       - run: echo "The ${{ github.workspace }} is now ready to test your code on the runner."
       - run: ls ${{ github.workspace }}
 
+      - run: sudo apt update
+      - run: sudo apt install rustup
+
+      - run: echo "start install Rust..."
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+      - run: echo "end install Rust..."
+
+      - run: echo "start install Cargo..."
+      - name: Install Cargo
+        uses: actions-rs/cargo@v1
+      - run: echo "end install Cargo..."
+
+      - run: rustup target add aarch64-linux-android
+      - run: cargo install cargo-ndk
+
       - name: Set up our JDK environment
         uses: actions/setup-java@v2
         with:
