@@ -16,13 +16,30 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            storeFile file("./release.keystore")
+            storePassword "123456"
+            keyAlias "dummy-release-key"
+            keyPassword "123456"
+        }
+        debug {
+            storeFile file("./debug.keystore")
+            storePassword "123456"
+            keyAlias "dummy-debug-key"
+            keyPassword "123456"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
         debug {
             minifyEnabled false
+            signingConfig signingConfigs.debug
             //packagingOptions {
             //    doNotStrip '**/*.so'
             //}
