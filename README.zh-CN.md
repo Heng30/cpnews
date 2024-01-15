@@ -1,4 +1,5 @@
-![screenshot](./screenshot/cpnews-cn.png)
+<img src="./screenshot/cpnews-cn.png" width="200" height="400" />
+<!-- ![screenshot](./screenshot/cpnews-cn.png) -->
 
 [English Documentation](./README.md)
 
