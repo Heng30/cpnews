@@ -11,6 +11,7 @@ pub const SMALL_ICON_SIZE: Vec2 = Vec2::new(20.0, 20.0);
 pub const BACK_ICON_SIZE: Vec2 = Vec2::new(16.0, 16.0);
 
 pub const NEWS_TITLE_FONT_SIZE: f32 = 16.0;
+pub const NEWS_SUMMARY_FONT_SIZE: f32 = 15.0;
 pub const NEWS_TITLE_COLOR: Color32 = Color32::from_rgb(0, 0, 200);
 
 pub const BRAND_COLOR: Color32 = Color32::from_rgb(0, 0, 139);

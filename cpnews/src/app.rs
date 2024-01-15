@@ -262,7 +262,10 @@ impl App {
 
             ui.add_space(theme::SPACING);
 
-            ui.label(&item.summary);
+            ui.label(
+                RichText::new(&item.summary)
+                    .font(FontId::proportional(theme::NEWS_SUMMARY_FONT_SIZE)),
+            );
 
             ui.add_space(theme::SPACING);
 
