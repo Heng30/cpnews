@@ -1,10 +1,11 @@
 use super::util;
 use anyhow::{anyhow, Result};
 use serde_json::Value;
+use std::{fs, path::Path};
 
 const MAX_NEWS_ITEM: usize = 30;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct NewsItem {
     pub title: String,
     pub summary: String,
@@ -32,7 +33,7 @@ pub struct CryptoCompareNews {
     pub data: Vec<Value>,
 }
 
-pub fn fetch_cryptocompare() -> Result<Vec<NewsItem>> {
+pub fn fetch_cryptocompare(path: &Path) -> Result<Vec<NewsItem>> {
     const NEWS_API: &str = "https://min-api.cryptocompare.com/data/v2/news/?lang=EN";
     let resp = reqwest::blocking::get(NEWS_API)?.json::<CryptoCompareNews>()?;
 
@@ -102,10 +103,14 @@ pub fn fetch_cryptocompare() -> Result<Vec<NewsItem>> {
         });
     }
 
+    if !news_items.is_empty() {
+        let _ = save(path, &news_items);
+    }
+
     Ok(news_items)
 }
 
-pub fn fetch_odaily() -> Result<Vec<NewsItem>> {
+pub fn fetch_odaily(path: &Path) -> Result<Vec<NewsItem>> {
     const NEWS_API: &str = "https://www.odaily.news/v1/openapi/feeds";
     let resp = reqwest::blocking::get(NEWS_API)?.json::<OdailyNews>()?;
 
@@ -177,5 +182,30 @@ pub fn fetch_odaily() -> Result<Vec<NewsItem>> {
         });
     }
 
+    if !news_items.is_empty() {
+        let _ = save(path, &news_items);
+    }
+
     Ok(news_items)
+}
+
+pub fn load(cache_dir: &Path) -> (Vec<NewsItem>, Vec<NewsItem>) {
+    let cn_items = {
+        let text = fs::read_to_string(cache_dir.join("news-cn.json")).unwrap_or(String::default());
+        serde_json::from_str::<Vec<NewsItem>>(&text).unwrap_or(vec![])
+    };
+
+    let en_items = {
+        let text = fs::read_to_string(cache_dir.join("news-en.json")).unwrap_or(String::default());
+        serde_json::from_str::<Vec<NewsItem>>(&text).unwrap_or(vec![])
+    };
+
+    (cn_items, en_items)
+}
+
+fn save(path: &Path, items: &Vec<NewsItem>) -> Result<()> {
+    match serde_json::to_string_pretty(items) {
+        Ok(text) => Ok(fs::write(path, text)?),
+        Err(e) => Err(anyhow!("{e:?}")),
+    }
 }

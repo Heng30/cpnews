@@ -1,5 +1,6 @@
 use super::{
     about::{self, About},
+    config::Config,
     news,
     news::NewsItem,
     theme,
@@ -58,13 +59,14 @@ enum ChannelItem {
 
 #[derive(Clone)]
 pub struct App {
-    pub is_cn: bool,
     pub is_fetching: bool,
     pub is_scroll_to_top: bool,
     pub news_items_cn: Vec<NewsItem>,
     pub news_items_en: Vec<NewsItem>,
 
-    pub currency_panel: CurrentPanel,
+    pub current_panel: CurrentPanel,
+    pub conf: Config,
+
     pub about_panel: About,
     msg_spec: MsgSpec,
 
@@ -83,14 +85,14 @@ impl Default for App {
         let (tx, rx) = mpsc::sync_channel(10);
 
         Self {
-            is_cn: true,
             is_fetching: false,
             is_scroll_to_top: false,
             news_items_cn: vec![],
             news_items_en: vec![],
 
-            currency_panel: Default::default(),
+            current_panel: Default::default(),
             msg_spec: Default::default(),
+            conf: Default::default(),
 
             about_panel: Default::default(),
 
@@ -108,6 +110,12 @@ impl Default for App {
 
 impl App {
     pub fn init(&mut self, ctx: &Context) {
+        if let Err(e) = self.conf.init() {
+            log::warn!("{e:?}");
+        }
+
+        (self.news_items_cn, self.news_items_en) = news::load(self.conf.cache_dir.as_path());
+
         self.fetch_data();
 
         self.brand_icon = Some(ctx.load_texture(
@@ -143,7 +151,7 @@ impl App {
 
     pub fn ui(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            match self.currency_panel {
+            match self.current_panel {
                 CurrentPanel::News => {
                     self.header(ui);
                     self.news_list(ui);
@@ -158,10 +166,15 @@ impl App {
     }
 
     fn header(&mut self, ui: &mut Ui) {
+        // let res = std::fs::metadata("/data/data/xyz.heng30.cpnews/data/cache/news-en.json");
+        // ui.label(format!("{:?}", res));
+
         ui.horizontal(|ui| {
             ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                 ui.image(&self.brand_icon.clone().unwrap(), theme::ICON_SIZE);
-                ui.heading(RichText::new(tr(self.is_cn, "加密新闻")).color(theme::BRAND_COLOR));
+                ui.heading(
+                    RichText::new(tr(self.conf.ui.is_cn, "加密新闻")).color(theme::BRAND_COLOR),
+                );
             });
 
             // double-clicked-area to scroll to top
@@ -190,7 +203,7 @@ impl App {
                     )
                     .clicked()
                 {
-                    self.currency_panel = CurrentPanel::About;
+                    self.current_panel = CurrentPanel::About;
                 }
 
                 if ui
@@ -203,11 +216,14 @@ impl App {
                     )
                     .clicked()
                 {
-                    self.is_cn = !self.is_cn;
+                    self.conf.ui.is_cn = !self.conf.ui.is_cn;
+                    if let Err(e) = self.conf.save() {
+                        log::warn!("{e:?}");
+                    }
 
                     // fetch data only without news cache
-                    if (self.is_cn && self.news_items_cn.is_empty())
-                        || (!self.is_cn && self.news_items_en.is_empty())
+                    if (self.conf.ui.is_cn && self.news_items_cn.is_empty())
+                        || (!self.conf.ui.is_cn && self.news_items_en.is_empty())
                     {
                         self.fetch_data();
                     }
@@ -225,7 +241,8 @@ impl App {
 
                 if self.is_fetching {
                     ui.label(
-                        RichText::new(tr(self.is_cn, "正在刷新")).color(theme::NEWS_TITLE_COLOR),
+                        RichText::new(tr(self.conf.ui.is_cn, "正在刷新"))
+                            .color(theme::NEWS_TITLE_COLOR),
                     );
                 }
             });
@@ -237,13 +254,13 @@ impl App {
     fn news_list(&mut self, ui: &mut Ui) {
         let row_height = ui.spacing().interact_size.y;
 
-        let num_rows = if self.is_cn {
+        let num_rows = if self.conf.ui.is_cn {
             self.news_items_cn.len()
         } else {
             self.news_items_en.len()
         };
 
-        let news_items = if self.is_cn {
+        let news_items = if self.conf.ui.is_cn {
             &self.news_items_cn
         } else {
             &self.news_items_en
@@ -288,7 +305,7 @@ impl App {
                 if !item.link.is_empty() {
                     ui.add_space(theme::SPACING);
 
-                    ui.hyperlink_to(tr(self.is_cn, "原文链接"), &item.link);
+                    ui.hyperlink_to(tr(self.conf.ui.is_cn, "原文链接"), &item.link);
                 }
             });
 
@@ -324,13 +341,14 @@ impl App {
 
         self.is_fetching = true;
         let tx = self.tx.clone();
-        let is_cn = self.is_cn;
+        let is_cn = self.conf.ui.is_cn;
+        let cache_dir = self.conf.cache_dir.clone();
 
         std::thread::spawn(move || {
             match if is_cn {
-                news::fetch_odaily()
+                news::fetch_odaily(cache_dir.join("news-cn.json").as_path())
             } else {
-                news::fetch_cryptocompare()
+                news::fetch_cryptocompare(cache_dir.join("news-en.json").as_path())
             } {
                 Err(e) => {
                     let _ = tx.try_send(ChannelItem::ErrMsg(e.to_string()));

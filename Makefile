@@ -11,7 +11,10 @@ build-android-lib:
 build-android-app: build-android-lib
 	cd ./cpnews && ./gradlew build
 
-install: build-android-app
+build-desktop-app:
+	$(build-evn) $(run-evn) cargo build --bin cpnews --features=desktop --release
+
+install-debug: build-android-app
 	cd ./cpnews && ./gradlew installDebug
 
 install-release: build-android-app

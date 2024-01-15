@@ -24,6 +24,7 @@ mod theme;
 mod tr;
 mod util;
 mod version;
+mod config;
 
 use app::App;
 
