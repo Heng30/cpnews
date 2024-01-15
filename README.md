@@ -1,4 +1,4 @@
-<img src="./screenshot/cpnews-en.png" width="200"/>
+<img src="./screenshot/cpnews-en.png" width="100"/>
 <!-- ![screenshot](./screenshot/cpnews-en.png) -->
 
 [中文文档](./README.zh-CN.md)
