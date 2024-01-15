@@ -65,7 +65,7 @@ pub fn fetch_cryptocompare() -> Result<Vec<NewsItem>> {
                 let words: Vec<&str> = v.split_whitespace().collect();
                 if words.len() > 100 {
                     let v = words.into_iter().take(100).collect::<Vec<_>>().join(" ");
-                    format!("{v}...)
+                    format!("{v}...")
                 } else {
                     v.clone()
                 }
