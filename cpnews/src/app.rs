@@ -8,8 +8,8 @@ use super::{
 };
 use egui::{
     containers::scroll_area::ScrollBarVisibility, containers::Frame, Align, Button, Color32,
-    Context, FontId, ImageButton, Layout, Pos2, RichText, ScrollArea, Stroke, TextStyle,
-    TextureHandle, Ui, Window,
+    Context, FontId, ImageButton, Layout, Pos2, RichText, ScrollArea, Stroke, TextureHandle, Ui,
+    Window,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -53,7 +53,7 @@ struct MsgSpec {
 #[derive(Clone, Debug)]
 enum ChannelItem {
     ErrMsg(String),
-    NewsItems(Vec<NewsItem>),
+    NewsItems((bool, Vec<NewsItem>)),
 }
 
 #[derive(Clone)]
@@ -61,7 +61,8 @@ pub struct App {
     pub is_cn: bool,
     pub is_fetching: bool,
     pub is_scroll_to_top: bool,
-    pub news_items: Vec<NewsItem>,
+    pub news_items_cn: Vec<NewsItem>,
+    pub news_items_en: Vec<NewsItem>,
 
     pub currency_panel: CurrentPanel,
     pub about_panel: About,
@@ -85,7 +86,8 @@ impl Default for App {
             is_cn: true,
             is_fetching: false,
             is_scroll_to_top: false,
-            news_items: vec![],
+            news_items_cn: vec![],
+            news_items_en: vec![],
 
             currency_panel: Default::default(),
             msg_spec: Default::default(),
@@ -166,18 +168,12 @@ impl App {
             ui.with_layout(
                 Layout::centered_and_justified(egui::Direction::LeftToRight),
                 |ui| {
-                    Frame::none()
-                        // .fill(theme::WARN_COLOR)
-                        // .stroke(Stroke {
-                        //     width: 1.0,
-                        //     color: Color32::BLACK,
-                        // })
-                        .show(ui, |ui| {
-                            let btn = Button::new("").frame(false);
-                            if ui.add(btn).double_clicked() {
-                                self.is_scroll_to_top = true;
-                            }
-                        });
+                    Frame::none().show(ui, |ui| {
+                        let btn = Button::new("").frame(false);
+                        if ui.add(btn).double_clicked() {
+                            self.is_scroll_to_top = true;
+                        }
+                    });
                 },
             );
 
@@ -208,6 +204,13 @@ impl App {
                     .clicked()
                 {
                     self.is_cn = !self.is_cn;
+
+                    // fetch data only without news cache
+                    if (self.is_cn && self.news_items_cn.is_empty())
+                        || (!self.is_cn && self.news_items_en.is_empty())
+                    {
+                        self.fetch_data();
+                    }
                 }
 
                 if ui
@@ -222,7 +225,7 @@ impl App {
 
                 if self.is_fetching {
                     ui.label(
-                        RichText::new(&tr(self.is_cn, "正在刷新")).color(theme::NEWS_TITLE_COLOR),
+                        RichText::new(tr(self.is_cn, "正在刷新")).color(theme::NEWS_TITLE_COLOR),
                     );
                 }
             });
@@ -232,9 +235,19 @@ impl App {
     }
 
     fn news_list(&mut self, ui: &mut Ui) {
-        let text_style = TextStyle::Body;
-        let row_height = ui.text_style_height(&text_style);
-        let num_rows = self.news_items.len();
+        let row_height = ui.spacing().interact_size.y;
+
+        let num_rows = if self.is_cn {
+            self.news_items_cn.len()
+        } else {
+            self.news_items_en.len()
+        };
+
+        let news_items = if self.is_cn {
+            &self.news_items_cn
+        } else {
+            &self.news_items_en
+        };
 
         let mut sarea = ScrollArea::vertical()
             .auto_shrink([false, false])
@@ -247,7 +260,7 @@ impl App {
 
         sarea.show_rows(ui, row_height, num_rows, |ui, row_range| {
             for row in row_range {
-                self.show_news_item(ui, &self.news_items[row]);
+                self.show_news_item(ui, &news_items[row]);
             }
         });
     }
@@ -289,9 +302,13 @@ impl App {
         if let Ok(item) = rx.borrow_mut().try_recv() {
             match item {
                 ChannelItem::ErrMsg(msg) => self.show_message(msg, MsgType::Warn),
-                ChannelItem::NewsItems(items) => {
+                ChannelItem::NewsItems((is_cn, items)) => {
                     if !items.is_empty() {
-                        self.news_items = items;
+                        if is_cn {
+                            self.news_items_cn = items;
+                        } else {
+                            self.news_items_en = items;
+                        }
                     }
                 }
             }
@@ -307,13 +324,20 @@ impl App {
 
         self.is_fetching = true;
         let tx = self.tx.clone();
+        let is_cn = self.is_cn;
 
-        std::thread::spawn(move || match news::fetch() {
-            Err(e) => {
-                let _ = tx.try_send(ChannelItem::ErrMsg(e.to_string()));
-            }
-            Ok(v) => {
-                let _ = tx.try_send(ChannelItem::NewsItems(v));
+        std::thread::spawn(move || {
+            match if is_cn {
+                news::fetch_odaily()
+            } else {
+                news::fetch_cryptocompare()
+            } {
+                Err(e) => {
+                    let _ = tx.try_send(ChannelItem::ErrMsg(e.to_string()));
+                }
+                Ok(v) => {
+                    let _ = tx.try_send(ChannelItem::NewsItems((is_cn, v)));
+                }
             }
         });
     }

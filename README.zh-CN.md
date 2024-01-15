@@ -3,10 +3,11 @@
 [English Documentation](./README.md)
 
 #### 简介
-一个简单的加密新闻软件。
+一个简单的安卓加密新闻软件。基于`Rust`和`egui`实现。
 
 #### 功能
-- [x] 使用[odaily.news](https://www.odaily.news/) 提供的`API`获取新闻
+- [x] 使用[odaily.news](https://www.odaily.news/) 提供的`API`获取中文新闻
+- [x] 使用[cryptocompare](https://min-api.cryptocompare.com/data/v2/news/?lang=EN) 提供的`API`获取英文新闻
 
 #### 如何构建?
 - 安装 Android `sdk`, `ndk` 和 `jdk17`，并配置相应的环境变量
