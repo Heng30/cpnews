@@ -3,7 +3,11 @@ use anyhow::{anyhow, Result};
 use serde_json::Value;
 use std::{fs, path::Path};
 
+#[cfg(target_os = "android")]
 const MAX_NEWS_ITEM: usize = 30;
+
+#[cfg(not(target_os = "android"))]
+const MAX_NEWS_ITEM: usize = 100;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct NewsItem {
