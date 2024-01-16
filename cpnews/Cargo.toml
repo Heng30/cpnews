@@ -13,6 +13,7 @@ serde_derive = "1.0"
 chrono = "0.4"
 anyhow = "1.0"
 image = "0.24"
+webbrowser = "0.8"
 
 egui = {version = "0.22",  features = ["color-hex"] }
 egui-wgpu = { version = "0.22", features = [ "winit" ] }

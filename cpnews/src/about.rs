@@ -48,6 +48,11 @@ pub fn ui(app: &mut App, ui: &mut Ui) {
         }
 
         ui.add_space(theme::SPACING);
-        ui.hyperlink_to(address, &format!("{etherscan}{address}"));
+
+        if ui.link(address).clicked() {
+            if let Err(e) = webbrowser::open(&format!("{etherscan}{address}")) {
+                log::warn!("{e:?}");
+            }
+        }
     });
 }

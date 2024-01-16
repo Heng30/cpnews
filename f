@@ -305,6 +305,7 @@ impl App {
                 if !item.link.is_empty() {
                     ui.add_space(theme::SPACING);
 
+                    // ui.hyperlink_to(tr(self.conf.ui.is_cn, "原文链接"), &item.link);
                     if ui.link(tr(self.conf.ui.is_cn, "原文链接")).clicked() {
                         if let Err(e) = webbrowser::open(&item.link) {
                             log::warn!("{e:?}");
