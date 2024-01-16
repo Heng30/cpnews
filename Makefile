@@ -20,6 +20,9 @@ install-debug: build-android-app
 install-release: build-android-app
 	cd ./cpnews && ./gradlew installRelease
 
+install-desktop:
+	cp -f ./target/release/cpnews ~/bin
+
 run-android-app:
 	adb shell am start -n xyz.heng30.cpnews/android.app.NativeActivity
 
