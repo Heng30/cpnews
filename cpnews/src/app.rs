@@ -248,7 +248,7 @@ impl App {
             });
         });
 
-        ui.separator();
+        ui.add_space(theme::SPACING);
     }
 
     fn news_list(&mut self, ui: &mut Ui) {
