@@ -388,7 +388,7 @@ impl App {
             .auto_sized()
             .constrain(true)
             .interactable(false)
-            .fixed_pos(Pos2::new(10.0, 60.0))
+            .fixed_pos(Pos2::new(theme::PADDING, theme::PADDING))
             .frame(frame)
             .show(ctx, |ui| {
                 ui.label(&self.msg_spec.msg);
