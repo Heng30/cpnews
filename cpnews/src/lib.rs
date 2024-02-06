@@ -3,12 +3,9 @@
 #[macro_use]
 extern crate serde_derive;
 
-// #[macro_use]
-// extern crate lazy_static;
-
 use egui_wgpu::wgpu;
 use egui_wgpu::winit::Painter;
-use egui_winit::winit;
+use egui_winit::winit::{self, window::Icon};
 use egui_winit::State;
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
@@ -19,12 +16,12 @@ use crate::winit::platform::android::activity::AndroidApp;
 
 mod about;
 mod app;
+mod config;
 mod news;
 mod theme;
 mod tr;
 mod util;
 mod version;
-mod config;
 
 use app::App;
 
@@ -50,6 +47,15 @@ fn create_window<T>(
         .with_resizable(true)
         .with_transparent(false)
         .with_title("cpnews")
+        .with_window_icon({
+            let icon = theme::load_image_from_memory(theme::BRAND_ICON);
+            Icon::from_rgba(
+                icon.as_raw().to_vec(),
+                icon.width() as u32,
+                icon.height() as u32,
+            )
+            .map_or(None, |v| Some(v))
+        })
         .with_inner_size(winit::dpi::PhysicalSize {
             width: INITIAL_WIDTH,
             height: INITIAL_HEIGHT,
